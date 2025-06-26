@@ -1,0 +1,32 @@
+- name: Install mount packages on (Ubuntu, Debian)
+  package:
+    state: latest
+    name:
+      - cifs-utils
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Install smb mount packages on (Alpine)
+  apk:
+    name: 
+      - cifs-utils
+  when: ansible_distribution in ["Alpine"]
+  notify: Start and enable smb on (Alpine)
+
+- meta: flush_handlers
+
+- name: Copy credentials
+  copy:
+    src: "{{ item.value.credential_src }}"
+    dest: "{{ item.value.credential_dest }}"
+    mode: "0600"
+    owner: root
+  loop: "{{ lookup('dict', smb_mounts, wantlist=True) }}"
+
+- name: Mount SMB volumes
+  mount:
+    src: "{{ item.value.src }}"
+    path: "{{ item.value.mount_point }}"
+    opts: "{{ item.value.opts }}"
+    fstype: cifs
+    state: mounted
+  loop: "{{ lookup('dict', smb_mounts, wantlist=True) }}"
